@@ -3,4 +3,4 @@ project(lab1)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(lab1 main.cpp)
+add_executable(first_try "Fisrt try/main.cpp" exceptions.h "Fisrt try/waveparams.cpp" "Fisrt try/waveparams.h" "Fisrt try/wavesim.cpp" "Fisrt try/wavesim.h")
