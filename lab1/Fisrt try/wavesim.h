@@ -36,7 +36,11 @@ private:
 
     double phi();
 
+    void saveBinary();
+
     void saveToFile();
+
+    void printArray(double **arr);
 
 public:
     explicit WaveSim(WaveParams *params);

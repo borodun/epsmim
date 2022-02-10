@@ -6,6 +6,7 @@ WaveParams::WaveParams(int argc, char *argv[]) {
         throw badArgsException(std::string("Usage: ") + argv[0] + "Nx Ny Nt Sx Sy filename");
     }
 
+
     Nx = std::stoi(argv[1]);
     Ny = std::stoi(argv[2]);
     Nt = std::stoi(argv[3]);

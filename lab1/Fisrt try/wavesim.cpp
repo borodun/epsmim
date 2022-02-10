@@ -8,16 +8,16 @@ WaveSim::WaveSim(WaveParams *params) : params(*params) {
     hy = (Yb - Ya) / Ny;
     tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
 
-    UNext = new double *[Ny];
     UCurrent = new double *[Ny];
+    UPrev = new double *[Ny];
     P = new double *[Ny];
     for (y = 0; y < Ny; ++y) {
-        UNext[y] = new double[Nx];
         UCurrent[y] = new double[Nx];
+        UPrev[y] = new double[Nx];
         P[y] = new double[Nx];
     }
 
-    UPrev = UCurrent;
+    UNext = UPrev;
 }
 
 void WaveSim::init() {
@@ -30,8 +30,8 @@ void WaveSim::init() {
             } else {
                 P[y][x] = 0.2 * 0.2;
             }
-            UNext[y][x] = 0;
             UCurrent[y][x] = 0;
+            UPrev[y][x] = 0;
         }
     }
 }
@@ -50,13 +50,13 @@ void WaveSim::Run() {
 
 
         time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
-        for (y = 0; y < Ny; ++y) {
-            for (x = 0; x < Nx; ++x) {
+        for (y = 1; y < Ny - 1; ++y) {
+            for (x = 1; x < Nx - 1; ++x) {
                 double avgx = ((UCurrent[y][x + 1] - UCurrent[y][x]) * (P[y - 1][x] + P[y][x]) +
                                (UCurrent[y][x - 1] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y][x - 1])) / (2 * hx * hx);
                 double avgy = ((UCurrent[y + 1][x] - UCurrent[y][x]) * (P[y][x - 1] + P[y][x]) +
                                (UCurrent[y - 1][x] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y - 1][x])) / (2 * hy * hy);
-                double result = 2 * UCurrent[y][x] - UPrev[y][x] + tau * tau * round(phi() + avgx + avgy);
+                double result = 2 * UCurrent[y][x] - UPrev[y][x] + tau * tau * (phi() + avgx + avgy);
                 UNext[y][x] = result;
                 if (result > UMax) {
                     UMax = std::abs(result);
@@ -74,11 +74,19 @@ void WaveSim::Run() {
         }
         std::swap(UCurrent, UPrev);
         UNext = UPrev;
+
+        /*std::cout << "Next" << std::endl;
+        printArray(UNext);
+        std::cout << "Current" << std::endl;
+        printArray(UCurrent);
+        std::cout << "Prev" << std::endl;
+        printArray(UPrev);*/
     }
     time_point<high_resolution_clock> simEnd = high_resolution_clock::now();
     nanoseconds simTime = duration_cast<nanoseconds>(simEnd - simStart);
     std::cout << std::endl << "Simulation time: " << simTime.count() / 1e9 << std::endl;
 
+    saveBinary();
     saveToFile();
 }
 
@@ -86,25 +94,53 @@ double WaveSim::phi() {
     double result = 0;
     int Sx = params.getSx();
     int Sy = params.getSy();
+
     if (x == Sx && y == Sy) {
         double part = 2 * pi * f0 * (n * tau - t0);
         double ex = exp(-(part * part) / (lambda * lambda));
         double sine = sin(part);
         result = ex * sine;
     }
+    //std::cout << "X, Y, R: " << x << ", " << y << ", " << result << std::endl;
     return result;
 }
 
-void WaveSim::saveToFile() {
+void WaveSim::saveBinary() {
     int Nx = params.getNx();
     int Ny = params.getNy();
-    std::fstream of(params.getFilename(), std::ios::out | std::ios::binary);
+    std::fstream of(params.getFilename() + ".bin", std::ios::out | std::ios::binary);
     if (!of.is_open()) {
-        throw fileException(params.getFilename() + " cannot be open");
+        throw fileException(params.getFilename() + ".bin cannot be open");
     }
 
     of.write(reinterpret_cast<char *>(&UCurrent), (Ny * Nx) * sizeof(double));
 
     of.close();
+}
+
+void WaveSim::saveToFile() {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    std::fstream of(params.getFilename() + ".dat", std::ios::out);
+    if (!of.is_open()) {
+        throw fileException(params.getFilename() + ".dat cannot be open");
+    }
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            of << UCurrent[y][x] << " ";
+        }
+        of << std::endl;
+    }
+}
+
+void WaveSim::printArray(double **arr) {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            std::cout << arr[y][x] << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
