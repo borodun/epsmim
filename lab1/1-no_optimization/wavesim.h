@@ -30,7 +30,7 @@ private:
     double **UPrev;
     double **P;
 
-    int x, y, n;
+    int x = 0, y = 0, n = 0;
 
     void init();
 
@@ -39,6 +39,8 @@ private:
     void saveBinary();
 
     void saveToFile();
+
+    void printArrays();
 
     void printArray(double **arr);
 

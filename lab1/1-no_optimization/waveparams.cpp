@@ -6,7 +6,6 @@ WaveParams::WaveParams(int argc, char *argv[]) {
         throw badArgsException(std::string("Usage: ") + argv[0] + "Nx Ny Nt Sx Sy filename");
     }
 
-
     Nx = std::stoi(argv[1]);
     Ny = std::stoi(argv[2]);
     Nt = std::stoi(argv[3]);
@@ -20,7 +19,7 @@ WaveParams::WaveParams(int argc, char *argv[]) {
     if (Nt < 0) {
         throw badArgsException("Step count should be positive");
     }
-    if (Sx < 0 || Sy < 0 || Sx > Nx - 1 || Sy > Ny - 1) {
+    if (Sx < 1 || Sy < 1 || Sx > Nx - 2 || Sy > Ny - 2) {
         throw badArgsException("Source point should be in [0; N-1]");
     }
 }
@@ -50,7 +49,7 @@ const std::string &WaveParams::getFilename() const {
 }
 
 void WaveParams::PrintInfo() {
-    std::cout << "Simulation params: " << std::endl
+    std::cout << "Params: " << std::endl
               << "\tField : " << Nx << "x" << Ny << std::endl
               << "\tSteps : " << Nt << std::endl
               << "\tSource: (" << Sx << ", " << Sy << ")" << std::endl;

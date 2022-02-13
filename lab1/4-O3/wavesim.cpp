@@ -1,0 +1,154 @@
+#include "wavesim.h"
+
+WaveSim::WaveSim(WaveParams *params) : params(*params) {
+    int Nx = params->getNx();
+    int Ny = params->getNy();
+
+    hx = (Xb - Xa) / Nx;
+    hy = (Yb - Ya) / Ny;
+    tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
+
+    UCurrent = new double *[Ny];
+    UPrev = new double *[Ny];
+    P = new double *[Ny];
+    for (y = 0; y < Ny; ++y) {
+        UCurrent[y] = new double[Nx];
+        UPrev[y] = new double[Nx];
+        P[y] = new double[Nx];
+    }
+
+    UNext = UPrev;
+}
+
+void WaveSim::init() {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            if (x < Nx / 2) {
+                P[y][x] = 0.1 * 0.1;
+            } else {
+                P[y][x] = 0.2 * 0.2;
+            }
+            UCurrent[y][x] = 0;
+            UPrev[y][x] = 0;
+        }
+    }
+}
+
+void WaveSim::Run() {
+    init();
+    //params.PrintInfo();
+
+    int Nt = params.getNt();
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    double UMax = 0, UMaxPrev = 0;
+    int stepOfMax = 0;
+
+    time_point<high_resolution_clock> simStart = high_resolution_clock::now();
+    for (n = 0; n < Nt; ++n) {
+
+        //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
+        for (y = 1; y < Ny - 1; ++y) {
+            for (x = 1; x < Nx - 1; ++x) {
+                double avgx = ((UCurrent[y][x + 1] - UCurrent[y][x]) * (P[y - 1][x] + P[y][x]) +
+                               (UCurrent[y][x - 1] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y][x - 1])) / (2 * hx * hx);
+                double avgy = ((UCurrent[y + 1][x] - UCurrent[y][x]) * (P[y][x - 1] + P[y][x]) +
+                               (UCurrent[y - 1][x] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y - 1][x])) / (2 * hy * hy);
+                double result = 2 * UCurrent[y][x] - UPrev[y][x] + tau * tau * (phi() + avgx + avgy);
+                UNext[y][x] = result;
+                if (result > UMax) {
+                    UMax = std::abs(result);
+                }
+            }
+        }
+        /*time_point<high_resolution_clock> stepEnd = high_resolution_clock::now();
+        nanoseconds stepTime = duration_cast<nanoseconds>(stepEnd - stepStart);
+        nanoseconds totalTime = duration_cast<nanoseconds>(stepEnd - simStart);
+        std::cout << n << ": " << stepTime.count() / 1e9 << "s (" << totalTime.count() / 1e9 << "s)" << std::endl;*/
+
+        if (UMax > UMaxPrev) {
+            //std::cout << "\tUMax changed to " << UMax << " diff: +" << UMax - UMaxPrev << std::endl;
+            UMaxPrev = UMax;
+            stepOfMax = n;
+        }
+        std::swap(UCurrent, UPrev);
+        UNext = UPrev;
+    }
+    time_point<high_resolution_clock> simEnd = high_resolution_clock::now();
+    nanoseconds simTime = duration_cast<nanoseconds>(simEnd - simStart);
+    std::cout << std::endl << "Time: " << simTime.count() / 1e9 << "s" << std::endl;
+    std::cout << "Max : " << UMax << " (since step " << stepOfMax << ")" << std::endl;
+
+    saveBinary();
+    //saveToFile();
+}
+
+double WaveSim::phi() {
+    double result = 0;
+    int Sx = params.getSx();
+    int Sy = params.getSy();
+    if (x == Sx && y == Sy) {
+        double part = 2 * pi * f0 * (n * tau - t0);
+        double ex = exp(-(part * part) / (lambda * lambda));
+        double sine = sin(part);
+        result = ex * sine;
+    }
+    return result;
+}
+
+void WaveSim::saveBinary() {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    std::fstream of(params.getFilename() + ".bin", std::ios::out | std::ios::binary);
+    if (!of.is_open()) {
+        throw fileException(params.getFilename() + ".bin cannot be open");
+    }
+
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            of.write((char *) &UCurrent[y][x], sizeof(double));
+        }
+    }
+
+    of.close();
+}
+
+void WaveSim::saveToFile() {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    std::fstream of(params.getFilename() + ".dat", std::ios::out);
+    if (!of.is_open()) {
+        throw fileException(params.getFilename() + ".dat cannot be open");
+    }
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            of << UCurrent[y][x] << " ";
+        }
+        of << std::endl;
+    }
+
+    of.close();
+}
+
+void WaveSim::printArray(double **arr) {
+    int Nx = params.getNx();
+    int Ny = params.getNy();
+    for (y = 0; y < Ny; ++y) {
+        for (x = 0; x < Nx; ++x) {
+            std::cout << arr[y][x] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void WaveSim::printArrays() {
+    std::cout << "Next" << std::endl;
+    printArray(UNext);
+    std::cout << "Current" << std::endl;
+    printArray(UCurrent);
+    std::cout << "Prev" << std::endl;
+    printArray(UPrev);
+}
+

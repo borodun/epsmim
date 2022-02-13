@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 3.16)
 project(lab1)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
-add_executable(first_try "Fisrt try/main.cpp" exceptions.h "Fisrt try/waveparams.cpp" "Fisrt try/waveparams.h" "Fisrt try/wavesim.cpp" "Fisrt try/wavesim.h")
+function(setup name parts_str)
+    set(dependencies "")
+    string(REPLACE " " ";" parts ${parts_str})
+    foreach (part ${parts})
+        list(APPEND dependencies ${name}/${part})
+    endforeach ()
+
+    add_executable(${name} ${dependencies})
+endfunction(setup)
+
+setup(1-no_optimization "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+
+setup(2-O1 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+set_target_properties(2-O1 PROPERTIES COMPILE_FLAGS "-O1")
+
+setup(3-O2 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+set_target_properties(3-O2 PROPERTIES COMPILE_FLAGS "-O2")
+
+setup(4-O3 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+set_target_properties(4-O3 PROPERTIES COMPILE_FLAGS "-O3")

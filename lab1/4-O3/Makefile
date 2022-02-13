@@ -1,2 +1,2 @@
 build/wavesim: main.cpp waveparams.h waveparams.cpp wavesim.h wavesim.cpp
-	g++ -std=c++20 -o $@ $^
+	g++ -std=c++17 -o $@ $^ -O3

@@ -3,18 +3,21 @@
 mkdir build
 mkdir results
 
+echo Building
 make
 
-Nx=100
-Ny=100
-Nt=100
-Sx=50
-Sy=50
-filename="results/out"
+Nx=600
+Ny=600
+Nt=1500
+Sx=300
+Sy=300
+output="results/out"
 
-./build/wavesim $Nx $Ny $Nt $Sx $Sy $filename
+echo Simulating
+./build/wavesim $Nx $Ny $Nt $Sx $Sy $output
 
 for FILE in results/*.bin; do
+    echo Plotting "$FILE"
     gnuplot <<- EOF
         nx=${Nx}
         ny=${Ny}
@@ -23,11 +26,16 @@ for FILE in results/*.bin; do
         set output filename.".png"
         set xrange[-1:nx]
         set yrange[-1:ny]
+        set size ratio 1
+        set autoscale fix
         set palette gray
         set title filename
-        plot filename binary array=(ny,nx) format="%lf" with image
+        plot filename binary array=(ny,nx)  format="%lf" with image
 EOF
 done
+
+echo ""
+echo Finished
 
 
 
