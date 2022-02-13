@@ -13,6 +13,7 @@ function(setup name parts_str)
     add_executable(${name} ${dependencies})
 endfunction(setup)
 
+
 setup(1-no_optimization "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
 
 setup(2-O1 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
