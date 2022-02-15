@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 mkdir build
 mkdir results
@@ -6,11 +6,11 @@ mkdir results
 echo Building
 make
 
-Nx=8000
-Ny=8000
-Nt=100
-Sx=1
-Sy=1
+Nx=600
+Ny=600
+Nt=1500
+Sx=300
+Sy=300
 output="results/out"
 
 echo Simulating

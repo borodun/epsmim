@@ -24,3 +24,6 @@ set_target_properties(3-O2 PROPERTIES COMPILE_FLAGS "-O2")
 
 setup(4-O3 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
 set_target_properties(4-O3 PROPERTIES COMPILE_FLAGS "-O3")
+
+setup(5-operation-reorganize "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+set_target_properties(5-operation-reorganize PROPERTIES COMPILE_FLAGS "-O3")

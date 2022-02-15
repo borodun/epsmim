@@ -1,7 +1,7 @@
 #ifndef LAB1_WAVEPARAMS_H
 #define LAB1_WAVEPARAMS_H
 
-#include "../exceptions.h"
+#include "exceptions.h"
 #include <iostream>
 
 class WaveParams {

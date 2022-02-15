@@ -4,13 +4,23 @@ WaveSim::WaveSim(WaveParams *params) : params(*params) {
     int Nx = params->getNx();
     int Ny = params->getNy();
 
-    hx = (Xb - Xa) / Nx;
-    hy = (Yb - Ya) / Ny;
+    Sx = params->getSx();
+    Sy = params->getSy();
+
+    double hx = (Xb - Xa) / Nx;
+    double hy = (Yb - Ya) / Ny;
+    hxsqr = 1 / (2 * hx * hx);
+    hysqr = 1 / (2 * hy * hy);
     tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
 
-    UCurrent = new double[Ny * Nx];
-    UPrev = new double[Ny * Nx];
-    P = new double[Ny * Nx];
+    UCurrent = new double *[Ny];
+    UPrev = new double *[Ny];
+    P = new double *[Ny];
+    for (y = 0; y < Ny; ++y) {
+        UCurrent[y] = new double[Nx];
+        UPrev[y] = new double[Nx];
+        P[y] = new double[Nx];
+    }
 
     UNext = UPrev;
 }
@@ -21,12 +31,12 @@ void WaveSim::init() {
     for (y = 0; y < Ny; ++y) {
         for (x = 0; x < Nx; ++x) {
             if (x < Nx / 2) {
-                P[y * Nx + x] = 0.1 * 0.1;
+                P[y][x] = 0.1 * 0.1;
             } else {
-                P[y * Nx + x] = 0.2 * 0.2;
+                P[y][x] = 0.2 * 0.2;
             }
-            UCurrent[y * Nx + x] = 0;
-            UPrev[y * Nx + x] = 0;
+            UCurrent[y][x] = 0;
+            UPrev[y][x] = 0;
         }
     }
 }
@@ -47,16 +57,12 @@ void WaveSim::Run() {
         //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
             for (x = 1; x < Nx - 1; ++x) {
-                double avgx =
-                        ((UCurrent[y * Nx + x + 1] - UCurrent[y * Nx + x]) * (P[(y - 1) * Nx + x] + P[y * Nx + x]) +
-                         (UCurrent[y * Nx + x - 1] - UCurrent[y * Nx + x]) *
-                         (P[(y - 1) * Nx + x - 1] + P[y * Nx + x - 1])) / (2 * hx * hx);
-                double avgy =
-                        ((UCurrent[(y + 1) * Nx + x] - UCurrent[y * Nx + x]) * (P[y * Nx + x - 1] + P[y * Nx + x]) +
-                         (UCurrent[(y - 1) * Nx + x] - UCurrent[y * Nx + x]) *
-                         (P[(y - 1) * Nx + x - 1] + P[(y - 1) * Nx + x])) / (2 * hy * hy);
-                double result = 2 * UCurrent[y * Nx + x] - UPrev[y * Nx + x] + tau * tau * (phi() + avgx + avgy);
-                UNext[y * Nx + x] = result;
+                double avgx = ((UCurrent[y][x + 1] - UCurrent[y][x]) * (P[y - 1][x] + P[y][x]) +
+                               (UCurrent[y][x - 1] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y][x - 1])) * hxsqr;
+                double avgy = ((UCurrent[y + 1][x] - UCurrent[y][x]) * (P[y][x - 1] + P[y][x]) +
+                               (UCurrent[y - 1][x] - UCurrent[y][x]) * (P[y - 1][x - 1] + P[y - 1][x])) * hysqr;
+                double result = 2 * UCurrent[y][x] - UPrev[y][x] + tau * tau * (phi() + avgx + avgy);
+                UNext[y][x] = result;
                 if (result > UMax) {
                     UMax = std::abs(result);
                 }
@@ -84,13 +90,11 @@ void WaveSim::Run() {
     //saveToFile();
 }
 
-double WaveSim::phi() {
+double WaveSim::phi() const {
     double result = 0;
-    int Sx = params.getSx();
-    int Sy = params.getSy();
     if (x == Sx && y == Sy) {
-        double part = 2 * pi * f0 * (n * tau - t0);
-        double ex = exp(-(part * part) / (lambda * lambda));
+        double part = dpi * (n * tau - t0);
+        double ex = exp(-(part * part)) * lambda;
         double sine = sin(part);
         result = ex * sine;
     }
@@ -107,7 +111,7 @@ void WaveSim::saveBinary() {
 
     for (y = 0; y < Ny; ++y) {
         for (x = 0; x < Nx; ++x) {
-            of.write((char *) &UCurrent[y * Nx + x], sizeof(double));
+            of.write((char *) &UCurrent[y][x], sizeof(double));
         }
     }
 
@@ -123,7 +127,7 @@ void WaveSim::saveToFile() {
     }
     for (y = 0; y < Ny; ++y) {
         for (x = 0; x < Nx; ++x) {
-            of << UCurrent[y * Nx + x] << " ";
+            of << UCurrent[y][x] << " ";
         }
         of << std::endl;
     }
@@ -131,12 +135,12 @@ void WaveSim::saveToFile() {
     of.close();
 }
 
-void WaveSim::printArray(double *arr) {
+void WaveSim::printArray(double **arr) {
     int Nx = params.getNx();
     int Ny = params.getNy();
     for (y = 0; y < Ny; ++y) {
         for (x = 0; x < Nx; ++x) {
-            std::cout << arr[y * Nx + x] << " ";
+            std::cout << arr[y][x] << " ";
         }
         std::cout << std::endl;
     }

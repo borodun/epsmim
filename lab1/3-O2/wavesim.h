@@ -25,10 +25,10 @@ private:
     double hy;
     double tau;
 
-    double **UNext;
-    double **UCurrent;
-    double **UPrev;
-    double **P;
+    double *UNext;
+    double *UCurrent;
+    double *UPrev;
+    double *P;
 
     int x = 0, y = 0, n = 0;
 
@@ -42,7 +42,7 @@ private:
 
     void printArrays();
 
-    void printArray(double **arr);
+    void printArray(double *arr);
 
 public:
     explicit WaveSim(WaveParams *params);
