@@ -6,9 +6,9 @@ mkdir results
 echo Building
 make
 
-Nx=8000
-Ny=8000
-Nt=100
+Nx=600
+Ny=600
+Nt=1500
 Sx=1
 Sy=1
 output="results/out"

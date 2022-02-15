@@ -44,7 +44,7 @@ void WaveSim::Run() {
     time_point<high_resolution_clock> simStart = high_resolution_clock::now();
     for (n = 0; n < Nt; ++n) {
 
-        time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
+        //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
             for (x = 1; x < Nx - 1; ++x) {
                 double avgx =
@@ -62,10 +62,10 @@ void WaveSim::Run() {
                 }
             }
         }
-        time_point<high_resolution_clock> stepEnd = high_resolution_clock::now();
+        /*time_point<high_resolution_clock> stepEnd = high_resolution_clock::now();
         nanoseconds stepTime = duration_cast<nanoseconds>(stepEnd - stepStart);
         nanoseconds totalTime = duration_cast<nanoseconds>(stepEnd - simStart);
-        std::cout << n << ": " << stepTime.count() / 1e9 << "s (" << totalTime.count() / 1e9 << "s)" << std::endl;
+        std::cout << n << ": " << stepTime.count() / 1e9 << "s (" << totalTime.count() / 1e9 << "s)" << std::endl;*/
 
         if (UMax > UMaxPrev) {
             //std::cout << "\tUMax changed to " << UMax << " diff: +" << UMax - UMaxPrev << std::endl;

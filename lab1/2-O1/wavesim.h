@@ -2,7 +2,7 @@
 #define LAB1_WAVESIM_H
 
 #include "waveparams.h"
-#include "../exceptions.h"
+#include "exceptions.h"
 #include <cmath>
 #include <utility>
 #include <fstream>

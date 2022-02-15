@@ -2,7 +2,7 @@
 #define LAB1_WAVESIM_H
 
 #include "waveparams.h"
-#include "../exceptions.h"
+#include "exceptions.h"
 #include <cmath>
 #include <utility>
 #include <fstream>
@@ -27,16 +27,16 @@ private:
 
     int Sy, Sx;
 
-    double **UNext;
-    double **UCurrent;
-    double **UPrev;
-    double **P;
+    double *UNext;
+    double *UCurrent;
+    double *UPrev;
+    double *P;
 
     int x = 0, y = 0, n = 0;
 
     void init();
 
-    double phi() const;
+    [[nodiscard]] double phi() const;
 
     void saveBinary();
 
@@ -44,7 +44,7 @@ private:
 
     void printArrays();
 
-    void printArray(double **arr);
+    void printArray(double *arr);
 
 public:
     explicit WaveSim(WaveParams *params);
