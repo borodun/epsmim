@@ -78,7 +78,7 @@ void WaveSim::Run() {
     time_point<high_resolution_clock> simEnd = high_resolution_clock::now();
     nanoseconds simTime = duration_cast<nanoseconds>(simEnd - simStart);
     std::cout << std::endl << "Time: " << simTime.count() / 1e9 << "s" << std::endl;
-    std::cout << "Max : " << UMax << " (since step " << stepOfMax << ")" << std::endl;
+    std::cout << " Max: " << UMax << " (since step " << stepOfMax << ")" << std::endl;
 
     saveBinary();
     //saveToFile();

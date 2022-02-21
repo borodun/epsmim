@@ -4,9 +4,15 @@ WaveSim::WaveSim(WaveParams *params) : params(*params) {
     int Nx = params->getNx();
     int Ny = params->getNy();
 
+    Sx = params->getSx();
+    Sy = params->getSy();
+
     hx = (Xb - Xa) / Nx;
     hy = (Yb - Ya) / Ny;
+    hxsqr = 1 / (2 * hx * hx);
+    hysqr = 1 / (2 * hy * hy);
     tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
+    tausqr = tau * tau;
 
     UCurrent = new double[Ny * Nx];
     UPrev = new double[Ny * Nx];
@@ -47,18 +53,24 @@ void WaveSim::Run() {
         //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
             for (x = 1; x < Nx - 1; ++x) {
+                int pos = y * Nx + x;
+                int prevPos = (y - 1) * Nx + x;
+
+                double currentPos = UCurrent[pos];
+                double pPos = P[pos];
+
                 double avgx =
-                        ((UCurrent[y * Nx + x + 1] - UCurrent[y * Nx + x]) *
-                         (P[(y - 1) * Nx + x] + P[y * Nx + x]) +
-                         (UCurrent[y * Nx + x - 1] - UCurrent[y * Nx + x]) *
-                         (P[(y - 1) * Nx + x - 1] + P[y * Nx + x - 1])) / (2 * hx * hx);
+                        ((UCurrent[pos + 1] - currentPos) *
+                         (P[prevPos] + pPos) +
+                         (UCurrent[pos - 1] - currentPos) *
+                         (P[prevPos - 1] + P[pos - 1])) * hxsqr;
                 double avgy =
-                        ((UCurrent[(y + 1) * Nx + x] - UCurrent[y * Nx + x]) *
-                         (P[y * Nx + x - 1] + P[y * Nx + x]) +
-                         (UCurrent[(y - 1) * Nx + x] - UCurrent[y * Nx + x]) *
-                         (P[(y - 1) * Nx + x - 1] + P[(y - 1) * Nx + x])) / (2 * hy * hy);
-                double result = 2 * UCurrent[y * Nx + x] - UPrev[y * Nx + x] + tau * tau * (phi() + avgx + avgy);
-                UNext[y * Nx + x] = result;
+                        ((UCurrent[(y + 1) * Nx + x] - currentPos) *
+                         (P[pos - 1] + pPos) +
+                         (UCurrent[prevPos] - currentPos) *
+                         (P[prevPos - 1] + P[prevPos])) * hysqr;
+                double result = 2 * currentPos - UPrev[pos] + tausqr * (phi() + avgx + avgy);
+                UNext[pos] = result;
                 if (result > UMax) {
                     UMax = std::abs(result);
                 }
@@ -88,11 +100,9 @@ void WaveSim::Run() {
 
 double WaveSim::phi() {
     double result = 0;
-    int Sx = params.getSx();
-    int Sy = params.getSy();
     if (x == Sx && y == Sy) {
-        double part = 2 * pi * f0 * (n * tau - t0);
-        double ex = exp(-(part * part) / (lambda * lambda));
+        double part = dpi * (n * tau - t0);
+        double ex = exp(-part * part * lambda);
         double sine = sin(part);
         result = ex * sine;
     }

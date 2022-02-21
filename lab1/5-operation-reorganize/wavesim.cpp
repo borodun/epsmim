@@ -7,11 +7,12 @@ WaveSim::WaveSim(WaveParams *params) : params(*params) {
     Sx = params->getSx();
     Sy = params->getSy();
 
-    double hx = (Xb - Xa) / Nx;
-    double hy = (Yb - Ya) / Ny;
+    hx = (Xb - Xa) / Nx;
+    hy = (Yb - Ya) / Ny;
     hxsqr = 1 / (2 * hx * hx);
     hysqr = 1 / (2 * hy * hy);
     tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
+    tausqr = tau * tau;
 
     UCurrent = new double[Ny * Nx];
     UPrev = new double[Ny * Nx];
@@ -62,7 +63,7 @@ void WaveSim::Run() {
                          (P[y * Nx + x - 1] + P[y * Nx + x]) +
                          (UCurrent[(y - 1) * Nx + x] - UCurrent[y * Nx + x]) *
                          (P[(y - 1) * Nx + x - 1] + P[(y - 1) * Nx + x])) * hysqr;
-                double result = 2 * UCurrent[y * Nx + x] - UPrev[y * Nx + x] + tau * tau * (phi() + avgx + avgy);
+                double result = 2 * UCurrent[y * Nx + x] - UPrev[y * Nx + x] + tausqr * (phi() + avgx + avgy);
                 UNext[y * Nx + x] = result;
                 if (result > UMax) {
                     UMax = std::abs(result);
@@ -85,17 +86,17 @@ void WaveSim::Run() {
     time_point<high_resolution_clock> simEnd = high_resolution_clock::now();
     nanoseconds simTime = duration_cast<nanoseconds>(simEnd - simStart);
     std::cout << std::endl << "Time: " << simTime.count() / 1e9 << "s" << std::endl;
-    std::cout << "Max : " << UMax << " (since step " << stepOfMax << ")" << std::endl;
+    std::cout << " Max: " << UMax << " (since step " << stepOfMax << ")" << std::endl;
 
     saveBinary();
     //saveToFile();
 }
 
-double WaveSim::phi() const {
+double WaveSim::phi() {
     double result = 0;
     if (x == Sx && y == Sy) {
         double part = dpi * (n * tau - t0);
-        double ex = exp(-(part * part)) * lambda;
+        double ex = exp(-part * part * lambda);
         double sine = sin(part);
         result = ex * sine;
     }
