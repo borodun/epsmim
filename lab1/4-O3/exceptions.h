@@ -12,7 +12,7 @@ public:
         errorString = std::move(errStr);
     }
 
-    const char *what() const noexcept override {
+    [[nodiscard]] const char *what() const noexcept override {
         return errorString.c_str();
     }
 };
