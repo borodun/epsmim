@@ -52,23 +52,28 @@ void WaveSim::Run() {
 
         //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
+            int row = y * Nx;
+            int prevRow = (y - 1) * Nx;
+            int nextRow = (y + 1) * Nx;
             for (x = 1; x < Nx - 1; ++x) {
-                int pos = y * Nx + x;
-                int prevPos = (y - 1) * Nx + x;
+                int pos = row + x;
+                int prevPos = prevRow + x;
 
                 double currentPos = UCurrent[pos];
                 double pPos = P[pos];
+                double pm1 = P[pos - 1];
+                double ppm1 = P[prevPos - 1];
 
                 double avgx =
                         ((UCurrent[pos + 1] - currentPos) *
                          (P[prevPos] + pPos) +
                          (UCurrent[pos - 1] - currentPos) *
-                         (P[prevPos - 1] + P[pos - 1])) * hxsqr;
+                         (ppm1 + pm1)) * hxsqr;
                 double avgy =
-                        ((UCurrent[(y + 1) * Nx + x] - currentPos) *
-                         (P[pos - 1] + pPos) +
+                        ((UCurrent[nextRow + x] - currentPos) *
+                         (pm1 + pPos) +
                          (UCurrent[prevPos] - currentPos) *
-                         (P[prevPos - 1] + P[prevPos])) * hysqr;
+                         (ppm1 + P[prevPos])) * hysqr;
                 double result = 2 * currentPos - UPrev[pos] + tausqr * (phi() + avgx + avgy);
                 UNext[pos] = result;
                 if (result > UMax) {
