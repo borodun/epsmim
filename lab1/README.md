@@ -13,8 +13,7 @@ Submit job
 $ ./q devcloud-run
 ```
 
-[VTune on devcloud](VTune
-https://www.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/configuration-recipes/using-vtune-server-with-vs-code-intel-devcloud.html)
+[VTune on devcloud](https://www.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/configuration-recipes/using-vtune-server-with-vs-code-intel-devcloud.html)
 Advisor on devcloud 
 ```shell
 $ qsub -I
