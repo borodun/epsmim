@@ -1,0 +1,27 @@
+#!/bin/bash
+#==========================================
+# Copyright © 2020 Intel Corporation
+#
+# SPDX-License-Identifier: MIT
+#==========================================
+# Script to submit job in Intel(R) DevCloud
+# Version: 0.7
+#==========================================
+if [ -z "$1" ]; then
+    echo "Missing script argument, Usage: ./q run.sh"
+elif [ ! -f "$1" ]; then
+    echo "File $1 does not exist"
+else
+    echo "Job has been submitted to Intel(R) DevCloud and will execute soon."
+    echo ""
+    script=$1
+    # Remove old output files
+    rm *.sh.* > /dev/null 2>&1
+    # Submit job using qsub
+    qsub_id=`qsub -l nodes=1:gpu:ppn=2 -d . $script`
+    job_id="$(cut -d'.' -f1 <<<"$qsub_id")"
+    # Print qstat output
+    qstat
+    # Wait for output file to be generated and display
+    echo ""
+fi

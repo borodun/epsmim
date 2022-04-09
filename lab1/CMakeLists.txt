@@ -14,6 +14,7 @@ function(setup name parts_str)
 endfunction(setup)
 
 setup(1-no_optimization "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
+set_target_properties(1-no_optimization PROPERTIES COMPILE_FLAGS "-O0 -g")
 
 setup(2-O1 "main.cpp waveparams.cpp waveparams.h wavesim.cpp wavesim.h exceptions.h")
 set_target_properties(2-O1 PROPERTIES COMPILE_FLAGS "-O1 -g")
