@@ -14,9 +14,9 @@ WaveSim::WaveSim(WaveParams *params) : params(*params) {
     tau = Nx <= 1000 && Ny <= 1000 ? 0.01 : 0.001;
     tausqr = tau * tau;
 
-    UCurrent = static_cast<double *>(aligned_alloc(32, Ny * Nx * sizeof(double)));
-    UPrev = static_cast<double *>(aligned_alloc(32, Ny * Nx * sizeof(double)));
-    P = static_cast<double *>(aligned_alloc(32, Ny * Nx * sizeof(double)));
+    UCurrent = static_cast<double *>(aligned_alloc(64, Ny * Nx * sizeof(double)));
+    UPrev = static_cast<double *>(aligned_alloc(64, Ny * Nx * sizeof(double)));
+    P = static_cast<double *>(aligned_alloc(64, Ny * Nx * sizeof(double)));
 
     UNext = UPrev;
 
@@ -41,14 +41,6 @@ void WaveSim::init() {
     }
 }
 
-void printVec(std::string name, __m512d vec) {
-    std::cout << name << ": ";
-    for (int i = 0; i < 4; i++) {
-        std::cout << vec[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
 void WaveSim::Run() {
     init();
     //params.PrintInfo();
@@ -56,11 +48,14 @@ void WaveSim::Run() {
     int Nt = params.getNt();
     int Nx = params.getNx();
     int Ny = params.getNy();
+
+    int leftBlend = 0b00000001;
+    int rightBlend = 0b10000000;
+
     __m512d UMax = _mm512_set1_pd(0);
 
     time_point<high_resolution_clock> simStart = high_resolution_clock::now();
     for (n = 0; n < Nt; ++n) {
-        //std::cout << "Layer " << n << std::endl;
 
         auto *UUp = (__m512d *) (UCurrent);
         auto *UMid = (__m512d *) (UCurrent + Nx);
@@ -74,7 +69,6 @@ void WaveSim::Run() {
 
         //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
-//            std::cout << "Row " << y << std::endl;
             __m512d UUpLeft = UUp[0];
             __m512d UUpCentre = UUp[1];
             __m512d UUpRight = UUp[2];
@@ -96,16 +90,15 @@ void WaveSim::Run() {
             __m512d PLowRight = PLow[2];
 
             for (x = 1; x < Nx / vectorSize; ++x) {
-//                std::cout << "Pos " << x << std::endl;
-                __m512d U1 = _mm512_mask_blend_pd(0b00000001, _mm512_permutevar_pd(UMidCentre, leftShift),
-                                                  _mm512_permutevar_pd(UMidRight, swapFirstLast)) - UMidCentre;
+                __m512d U1 = _mm512_mask_blend_pd(leftBlend, _mm512_permutexvar_pd(leftShift, UMidCentre),
+                                                  _mm512_permutexvar_pd(swapFirstLast, UMidRight)) - UMidCentre;
                 __m512d P1 = PLowCentre + PMidCentre;
-                __m512d U2 = _mm512_mask_blend_pd(0b10000000, _mm512_permutevar_pd(UMidCentre, rightShift),
-                                                  _mm512_permutevar_pd(UMidLeft, swapFirstLast)) - UMidCentre;
-                __m512d PLeftShift = _mm512_mask_blend_pd(0b10000000, _mm512_permutevar_pd(PMidCentre, rightShift),
-                                                          _mm512_permutevar_pd(PMidLeft, swapFirstLast));
-                __m512d PDiagShift = _mm512_mask_blend_pd(0b10000000, _mm512_permutevar_pd(PLowCentre, rightShift),
-                                                          _mm512_permutevar_pd(PLowLeft, swapFirstLast));
+                __m512d U2 = _mm512_mask_blend_pd(rightBlend, _mm512_permutexvar_pd(rightShift, UMidCentre),
+                                                  _mm512_permutexvar_pd(swapFirstLast, UMidLeft)) - UMidCentre;
+                __m512d PLeftShift = _mm512_mask_blend_pd(rightBlend, _mm512_permutexvar_pd(rightShift, PMidCentre),
+                                                          _mm512_permutexvar_pd(swapFirstLast, PMidLeft));
+                __m512d PDiagShift = _mm512_mask_blend_pd(rightBlend, _mm512_permutexvar_pd(rightShift, PLowCentre),
+                                                          _mm512_permutexvar_pd(swapFirstLast, PLowLeft));
                 __m512d P2 = PDiagShift + PLeftShift;
                 __m512d avgx = (U1 * P1 + U2 * P2) * v_hxsqr;
 
@@ -118,9 +111,6 @@ void WaveSim::Run() {
                 __m512d res = 2 * UMidCentre - UPrevVec[x] + v_tausqr * (avgx + avgy + phi());
 
                 UNextVec[x] = res;
-//                if (x * vectorSize <= Sx && Sx < (x + 1) * vectorSize && y == Sy) {
-//                    printVec("Unextvec", UNextVec[x]);
-//                }
 
                 UMax = _mm512_max_pd(UMax, res);
 
@@ -144,13 +134,6 @@ void WaveSim::Run() {
                 PLowCentre = PLowRight;
                 PLowRight = PLow[x + 2];
             }
-//            if (y - 2 <= Sy && Sy < y + 2 && n == 1) {
-//                std::cout << "Unext: ";
-//                for (int i = 0; i < Nx; ++i) {
-//                    std::cout << UNext[i];
-//                }
-//                std::cout << std::endl;
-//            }
 
             ULow = UMid;
             UMid = UUp;
@@ -181,7 +164,7 @@ void WaveSim::Run() {
     std::cout << " Max: " << umax << std::endl;
 
     saveBinary();
-    saveToFile();
+    //saveToFile();
     free(UCurrent);
     free(UPrev);
     free(P);
@@ -197,7 +180,6 @@ __m512d WaveSim::phi() {
 
         int pos = Sx - x * vectorSize;
         result[pos] = res;
-        //printVec("phi", result);
     }
     return result;
 }

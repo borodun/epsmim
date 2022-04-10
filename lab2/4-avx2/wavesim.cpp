@@ -41,14 +41,6 @@ void WaveSim::init() {
     }
 }
 
-void printVec(std::string name, __m256d vec) {
-    std::cout << name << ": ";
-    for (int i = 0; i < 4; i++) {
-        std::cout << vec[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
 void WaveSim::Run() {
     init();
     //params.PrintInfo();
@@ -56,11 +48,17 @@ void WaveSim::Run() {
     int Nt = params.getNt();
     int Nx = params.getNx();
     int Ny = params.getNy();
+
+    int leftShift = 0b10010000;
+    int rightShift = 0b11111001;
+    int swapFirstLast = 0b00100111;
+    int leftBlend = 0b0001;
+    int rightBlend = 0b1000;
+
     __m256d UMax = _mm256_set1_pd(0);
 
     time_point<high_resolution_clock> simStart = high_resolution_clock::now();
     for (n = 0; n < Nt; ++n) {
-        //std::cout << "Layer " << n << std::endl;
 
         auto *UUp = (__m256d *) (UCurrent);
         auto *UMid = (__m256d *) (UCurrent + Nx);
@@ -74,7 +72,6 @@ void WaveSim::Run() {
 
         //time_point<high_resolution_clock> stepStart = high_resolution_clock::now();
         for (y = 1; y < Ny - 1; ++y) {
-//            std::cout << "Row " << y << std::endl;
             __m256d UUpLeft = UUp[0];
             __m256d UUpCentre = UUp[1];
             __m256d UUpRight = UUp[2];
@@ -96,20 +93,19 @@ void WaveSim::Run() {
             __m256d PLowRight = PLow[2];
 
             for (x = 1; x < Nx / vectorSize; ++x) {
-//                std::cout << "Pos " << x << std::endl;
-                __m256d U1 = _mm256_blendv_pd(_mm256_permutevar_pd(UMidCentre, leftShift),
-                                              _mm256_permutevar_pd(UMidRight, swapFirstLast),
-                                              leftBlend) - UMidCentre;
+                __m256d U1 = _mm256_blend_pd(_mm256_permute4x64_pd(UMidCentre, leftShift),
+                                             _mm256_permute4x64_pd(UMidRight, swapFirstLast),
+                                             leftBlend) - UMidCentre;
                 __m256d P1 = PLowCentre + PMidCentre;
-                __m256d U2 = _mm256_blendv_pd(_mm256_permutevar_pd(UMidCentre, rightShift),
-                                              _mm256_permutevar_pd(UMidLeft, swapFirstLast),
-                                              rightBlend) - UMidCentre;
-                __m256d PLeftShift = _mm256_blendv_pd(_mm256_permutevar_pd(PMidCentre, rightShift),
-                                                      _mm256_permutevar_pd(PMidLeft, swapFirstLast),
-                                                      rightBlend);
-                __m256d PDiagShift = _mm256_blendv_pd(_mm256_permutevar_pd(PLowCentre, rightShift),
-                                                      _mm256_permutevar_pd(PLowLeft, swapFirstLast),
-                                                      rightBlend);
+                __m256d U2 = _mm256_blend_pd(_mm256_permute4x64_pd(UMidCentre, rightShift),
+                                             _mm256_permute4x64_pd(UMidLeft, swapFirstLast),
+                                             rightBlend) - UMidCentre;
+                __m256d PLeftShift = _mm256_blend_pd(_mm256_permute4x64_pd(PMidCentre, rightShift),
+                                                     _mm256_permute4x64_pd(PMidLeft, swapFirstLast),
+                                                     rightBlend);
+                __m256d PDiagShift = _mm256_blend_pd(_mm256_permute4x64_pd(PLowCentre, rightShift),
+                                                     _mm256_permute4x64_pd(PLowLeft, swapFirstLast),
+                                                     rightBlend);
                 __m256d P2 = PDiagShift + PLeftShift;
                 __m256d avgx = (U1 * P1 + U2 * P2) * v_hxsqr;
 
@@ -122,9 +118,6 @@ void WaveSim::Run() {
                 __m256d res = 2 * UMidCentre - UPrevVec[x] + v_tausqr * (avgx + avgy + phi());
 
                 UNextVec[x] = res;
-                if (x * vectorSize <= Sx && Sx < (x + 1) * vectorSize && y == Sy) {
-                    printVec("Unextvec", UNextVec[x]);
-                }
 
                 UMax = _mm256_max_pd(UMax, res);
 
@@ -147,13 +140,6 @@ void WaveSim::Run() {
                 PLowLeft = PLowCentre;
                 PLowCentre = PLowRight;
                 PLowRight = PLow[x + 2];
-            }
-            if (y - 2 <= Sy && Sy < y + 2 && n == 1) {
-                std::cout << "Unext: ";
-                for (int i = 0; i < Nx; ++i) {
-                    std::cout << UNext[i];
-                }
-                std::cout << std::endl;
             }
 
             ULow = UMid;
@@ -185,7 +171,7 @@ void WaveSim::Run() {
     std::cout << " Max: " << umax << std::endl;
 
     saveBinary();
-    saveToFile();
+    //saveToFile();
     free(UCurrent);
     free(UPrev);
     free(P);
@@ -201,7 +187,6 @@ __m256d WaveSim::phi() {
 
         int pos = Sx - x * vectorSize;
         result[pos] = res;
-        //printVec("phi", result);
     }
     return result;
 }

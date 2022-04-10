@@ -38,12 +38,6 @@ private:
     double *UPrev;
     double *P;
 
-    __m256i leftShift = _mm256_set_epi64x(2, 1, 0, 0);
-    __m256i rightShift = _mm256_set_epi64x(3, 3, 2, 1);
-    __m256i swapFirstLast = _mm256_set_epi64x(0, 2, 1, 3);
-    __m256d leftBlend = _mm256_set_pd(0, 0, 0, ~0);
-    __m256d rightBlend = _mm256_set_pd(~0, 0, 0, 0);
-
     __m256d v_hxsqr;
     __m256d v_hysqr;
     __m256d v_tausqr;

@@ -41,8 +41,6 @@ private:
     __m512i leftShift = _mm512_set_epi64(6, 5, 4, 3, 2, 1, 0, 0);
     __m512i rightShift = _mm512_set_epi64(7, 7, 6, 5, 4, 3, 2, 1);
     __m512i swapFirstLast = _mm512_set_epi64(0, 6, 5, 4, 3, 2, 1, 7);
-    __m512d leftBlend = _mm512_set_pd(0, 0, 0, 0, 0, 0, 0, ~0);
-    __m512d rightBlend = _mm512_set_pd(~0, 0, 0, 0, 0, 0, 0, 0);
 
     __m512d v_hxsqr;
     __m512d v_hysqr;

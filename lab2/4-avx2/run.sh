@@ -7,11 +7,11 @@ mkdir results -p
 echo Building
 make
 
-Nx=600
-Ny=600
-Nt=1500
-Sx=50
-Sy=50
+Nx=10000
+Ny=10000
+Nt=120
+Sx=5000
+Sy=5000
 output="results/out"
 
 echo Simulating
