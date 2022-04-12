@@ -55,7 +55,7 @@ void WaveSim::Run() {
             int row = y * Nx;
             int prevRow = (y - 1) * Nx;
             int nextRow = (y + 1) * Nx;
-#pragma omp simd
+#pragma omp simd reduction(max: UMax)
             for (x = 1; x < Nx - 1; ++x) {
                 int pos = row + x;
                 int prevPos = prevRow + x;

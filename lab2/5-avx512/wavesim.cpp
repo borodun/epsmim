@@ -52,7 +52,8 @@ void WaveSim::Run() {
     int leftBlend = 0b00000001;
     int rightBlend = 0b10000000;
 
-    __m512d UMax = _mm512_set1_pd(0);
+    double UMax = 0;
+    __m512d VUMax = _mm512_set1_pd(0);
 
     time_point<high_resolution_clock> simStart = high_resolution_clock::now();
     for (n = 0; n < Nt; ++n) {
@@ -89,6 +90,36 @@ void WaveSim::Run() {
             __m512d PLowCentre = PLow[1];
             __m512d PLowRight = PLow[2];
 
+            int row = y * Nx;
+            int prevRow = (y - 1) * Nx;
+            int nextRow = (y + 1) * Nx;
+
+            for (x = 1; x < vectorSize; ++x) {
+                int pos = row + x;
+                int prevPos = prevRow + x;
+
+                double currentPos = UCurrent[pos];
+                double pPos = P[pos];
+                double pm1 = P[pos - 1];
+                double ppm1 = P[prevPos - 1];
+
+                double avgx =
+                        ((UCurrent[pos + 1] - currentPos) *
+                         (P[prevPos] + pPos) +
+                         (UCurrent[pos - 1] - currentPos) *
+                         (ppm1 + pm1)) * hxsqr;
+                double avgy =
+                        ((UCurrent[nextRow + x] - currentPos) *
+                         (pm1 + pPos) +
+                         (UCurrent[prevPos] - currentPos) *
+                         (ppm1 + P[prevPos])) * hysqr;
+                double result = 2 * currentPos - UPrev[pos] + tausqr * (phi() + avgx + avgy);
+                UNext[pos] = result;
+                if (result > UMax) {
+                    UMax = std::abs(result);
+                }
+            }
+
             for (x = 1; x < Nx / vectorSize; ++x) {
                 __m512d U1 = _mm512_mask_blend_pd(leftBlend, _mm512_permutexvar_pd(leftShift, UMidCentre),
                                                   _mm512_permutexvar_pd(swapFirstLast, UMidRight)) - UMidCentre;
@@ -112,7 +143,7 @@ void WaveSim::Run() {
 
                 UNextVec[x] = res;
 
-                UMax = _mm512_max_pd(UMax, res);
+                UMax = _mm512_max_pd(VUMax, res);
 
                 UUpLeft = UUpCentre;
                 UUpCentre = UUpRight;
@@ -133,6 +164,32 @@ void WaveSim::Run() {
                 PLowLeft = PLowCentre;
                 PLowCentre = PLowRight;
                 PLowRight = PLow[x + 2];
+            }
+
+            for (x = 1; x < vectorSize; ++x) {
+                int pos = row + x;
+                int prevPos = prevRow + x;
+
+                double currentPos = UCurrent[pos];
+                double pPos = P[pos];
+                double pm1 = P[pos - 1];
+                double ppm1 = P[prevPos - 1];
+
+                double avgx =
+                        ((UCurrent[pos + 1] - currentPos) *
+                         (P[prevPos] + pPos) +
+                         (UCurrent[pos - 1] - currentPos) *
+                         (ppm1 + pm1)) * hxsqr;
+                double avgy =
+                        ((UCurrent[nextRow + x] - currentPos) *
+                         (pm1 + pPos) +
+                         (UCurrent[prevPos] - currentPos) *
+                         (ppm1 + P[prevPos])) * hysqr;
+                double result = 2 * currentPos - UPrev[pos] + tausqr * (phi() + avgx + avgy);
+                UNext[pos] = result;
+                if (result > UMax) {
+                    UMax = std::abs(result);
+                }
             }
 
             ULow = UMid;
@@ -157,10 +214,11 @@ void WaveSim::Run() {
     std::cout << std::endl << "Time: " << simTime.count() / 1e9 << "s" << std::endl;
 
     double umax = 0.0;
-    auto *max = (double *) (&UMax);
+    auto *max = (double *) (&VUMax);
     for (int i = 0; i < vectorSize; i++) {
         umax = std::max(umax, max[i]);
     }
+    umax = std::max(umax, UMax);
     std::cout << " Max: " << umax << std::endl;
 
     saveBinary();
@@ -170,7 +228,7 @@ void WaveSim::Run() {
     free(P);
 }
 
-__m512d WaveSim::phi() {
+__m512d WaveSim::vphi() {
     __m512d result = _mm512_set1_pd(0);
     if (x * vectorSize <= Sx && Sx < (x + 1) * vectorSize && y == Sy) {
         double part = dpi * (n * tau - t0);
@@ -180,6 +238,17 @@ __m512d WaveSim::phi() {
 
         int pos = Sx - x * vectorSize;
         result[pos] = res;
+    }
+    return result;
+}
+
+double WaveSim::phi() {
+    double result = 0;
+    if (x == Sx && y == Sy) {
+        double part = dpi * (n * tau - t0);
+        double ex = exp(-part * part * lambda);
+        double sine = sin(part);
+        result = ex * sine;
     }
     return result;
 }

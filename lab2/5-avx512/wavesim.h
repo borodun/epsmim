@@ -50,7 +50,9 @@ private:
 
     void init();
 
-    __m512d phi();
+    __m512d vphi();
+
+    double phi();
 
     void saveBinary();
 

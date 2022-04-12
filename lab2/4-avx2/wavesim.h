@@ -46,7 +46,9 @@ private:
 
     void init();
 
-    __m256d phi();
+    __m256d vphi();
+
+    double phi();
 
     void saveBinary();
 
