@@ -143,7 +143,7 @@ void WaveSim::Run() {
 
                 UNextVec[x] = res;
 
-                UMax = _mm512_max_pd(VUMax, res);
+                VUMax = _mm512_max_pd(VUMax, res);
 
                 UUpLeft = UUpCentre;
                 UUpCentre = UUpRight;
