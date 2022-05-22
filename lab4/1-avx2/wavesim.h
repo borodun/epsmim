@@ -10,6 +10,7 @@
 #include <cstring>
 #include <chrono>
 #include <immintrin.h>
+#include "omp.h"
 
 using namespace std::chrono;
 
@@ -42,16 +43,13 @@ private:
     __m256d v_hysqr;
     __m256d v_tausqr;
 
-    int x = 0, y = 0, n = 0;
-
-    double UMax = 0;
-    __m256d VUMax = _mm256_set1_pd(0);
+//    int x = 0, y = 0, n = 0;
 
     void init();
 
-    __m256d vphi(int it);
+    __m256d vphi(int x, int y, int n);
 
-    double phi(int it);
+    double phi(int x, int y, int n);
 
     void saveBinary();
 

@@ -10,6 +10,7 @@
 #include <cstring>
 #include <chrono>
 #include <immintrin.h>
+#include "omp.h"
 
 using namespace std::chrono;
 
@@ -29,7 +30,7 @@ private:
     double hysqr;
     double tau;
     double tausqr;
-    int vectorSize = 4;
+    int vectorSize = 8;
 
     int Sy, Sx;
 
@@ -38,20 +39,21 @@ private:
     double *UPrev;
     double *P;
 
-    __m256d v_hxsqr;
-    __m256d v_hysqr;
-    __m256d v_tausqr;
+    __m512i leftShift = _mm512_set_epi64(6, 5, 4, 3, 2, 1, 0, 0);
+    __m512i rightShift = _mm512_set_epi64(7, 7, 6, 5, 4, 3, 2, 1);
+    __m512i swapFirstLast = _mm512_set_epi64(0, 6, 5, 4, 3, 2, 1, 7);
 
-    int x = 0, y = 0, n = 0;
+    __m512d v_hxsqr;
+    __m512d v_hysqr;
+    __m512d v_tausqr;
 
-    double UMax = 0;
-    __m256d VUMax = _mm256_set1_pd(0);
+//    int x = 0, y = 0, n = 0;
 
     void init();
 
-    __m256d vphi(int it);
+    __m512d vphi(int x, int y, int n);
 
-    double phi(int it);
+    double phi(int x, int y, int n);
 
     void saveBinary();
 
